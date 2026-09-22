@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartographie des risques naturels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,480;0,9..144,560;1,9..144,420&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#101a19;
+    --bg-2:#162423;
+    --panel:#ede6d6;
+    --ink:#efe9db;
+    --ink-dim:#9fb0a8;
+    --ink-panel:#20261f;
+    --rule:#3a4a44;
+    --contour:#6e8a73;
+
+    --inondation:#4a86ab;
+    --secheresse:#c99a2e;
+    --incendie:#b1452e;
+
+    --accent: var(--inondation);
+    --maxw:1180px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Archivo", sans-serif;
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:"Fraunces", serif;
+    font-weight:480;
+    margin:0;
+    letter-spacing:0.002em;
+  }
+  a{color:inherit;}
+  img,svg{display:block;max-width:100%;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 32px;}
+  @media (max-width:640px){ .wrap{padding:0 20px;} }
+
+  :focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:22px 0; border-bottom:1px solid var(--rule);
+  }
+  .topbar .mark{
+    display:flex; align-items:center; gap:10px;
+    font-family:"Fraunces", serif; font-size:1.05rem; font-weight:560; letter-spacing:0.01em;
+  }
+  .topbar .mark .dot{
+    width:9px; height:9px; border-radius:50%;
+    background:var(--secheresse);
+    box-shadow:0 0 0 3px rgba(201,154,46,0.18);
+  }
+  .topbar nav{display:flex; gap:28px; font-size:0.88rem; color:var(--ink-dim);}
+  .topbar nav a{text-decoration:none; transition:color .2s ease;}
+  .topbar nav a:hover{color:var(--ink);}
+  @media (max-width:640px){ .topbar nav{display:none;} }
+
+  /* ---------- Hero (compact) ---------- */
+  .hero{
+    position:relative; overflow:hidden; border-bottom:1px solid var(--rule);
+  }
+  .hero-contours{ position:absolute; inset:0; width:100%; height:100%; opacity:0.55; }
+  .hero-contours path{ fill:none; stroke-width:1; stroke:#2c3a35; }
+  .hero-inner{ position:relative; padding:72px 0 64px; }
+  .hero .coord{
+    font-size:0.8rem; color:var(--ink-dim); letter-spacing:0.03em;
+    margin-bottom:18px; display:inline-block;
+    border-left:2px solid var(--secheresse); padding-left:10px;
+  }
+  .hero h1{
+    font-size:clamp(2rem, 4vw, 3.2rem);
+    max-width:20ch; line-height:1.08;
+  }
+  .hero p.lede{
+    margin-top:20px; max-width:52ch; font-size:1.05rem; color:var(--ink-dim);
+  }
+
+  /* ---------- Tabs ---------- */
+  .tabset{ padding:56px 0 100px; }
+  .tablist{
+    display:flex; gap:0; border-bottom:1px solid var(--rule);
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
+  .tab{
+    appearance:none; background:none; border:none; cursor:pointer;
+    font-family:"Archivo", sans-serif; font-size:0.98rem; color:var(--ink-dim);
+    padding:14px 4px; margin-right:36px; white-space:nowrap;
+    display:flex; align-items:center; gap:10px;
+    border-bottom:2px solid transparent;
+    transform:translateY(1px);
+    transition:color .2s ease, border-color .2s ease;
+  }
+  .tab .swatch{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .tab:hover{ color:var(--ink); }
+  .tab[aria-selected="true"]{
+    color:var(--ink);
+    border-bottom-color:var(--accent);
+  }
+
+  .panel{ display:none; padding-top:44px; }
+  .panel.is-active{ display:block; }
+
+  .panel-head{
+    display:grid; grid-template-columns:1fr 1.4fr; gap:40px; margin-bottom:34px;
+  }
+  @media (max-width:760px){ .panel-head{grid-template-columns:1fr;} }
+  .panel-head .tag{ font-size:0.82rem; color:var(--ink-dim); }
+  .panel-head h2{ font-size:clamp(1.5rem, 2.6vw, 2rem); margin-top:8px; max-width:16ch; }
+  .panel-head p{ font-size:0.98rem; color:var(--ink-dim); max-width:52ch; margin-top:4px; }
+
+  .map-panel{
+    border:1px solid var(--rule); background:var(--bg-2);
+    display:grid; grid-template-columns:1fr 240px;
+  }
+  @media (max-width:800px){ .map-panel{grid-template-columns:1fr;} }
+
+  .map-frame{
+    position:relative; width:100%;
+    aspect-ratio:16/9;
+    border-right:1px solid var(--rule);
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(255,255,255,0.03) 28px),
+      repeating-linear-gradient(90deg, transparent, transparent 27px, rgba(255,255,255,0.03) 28px);
+  }
+  @media (max-width:800px){ .map-frame{border-right:none; border-bottom:1px solid var(--rule);} }
+  .map-frame iframe{
+    position:absolute; inset:0; width:100%; height:100%; border:0;
+  }
+
+  .map-side{ padding:24px 22px; }
+  .map-side .k{ font-size:0.72rem; color:var(--ink-dim); margin-bottom:4px; }
+  .map-side .v{ font-size:0.9rem; color:var(--ink); margin-bottom:16px; }
+  .map-side .note{
+    margin-top:8px; padding-top:14px; border-top:1px solid var(--rule);
+    font-size:0.78rem; color:var(--ink-dim); line-height:1.5;
+  }
+  .map-side .note code{
+    font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:0.72rem; color:var(--secheresse); word-break:break-all;
+  }
+
+  /* ---------- Method ---------- */
+  section#methode{ padding:0 0 96px; border-top:1px solid var(--rule); }
+  section#methode .wrap{ padding-top:88px; }
+  .section-head{
+    display:grid; grid-template-columns:1fr 1.6fr; gap:40px; margin-bottom:48px;
+  }
+  @media (max-width:760px){ .section-head{grid-template-columns:1fr;} }
+  .section-head .tag{ font-size:0.82rem; color:var(--ink-dim); }
+  .section-head h2{ font-size:clamp(1.6rem, 2.8vw, 2.2rem); max-width:18ch; }
+
+  .pipeline{ display:grid; grid-template-columns:repeat(4, 1fr); gap:0; }
+  @media (max-width:900px){ .pipeline{grid-template-columns:1fr 1fr;} }
+  @media (max-width:560px){ .pipeline{grid-template-columns:1fr;} }
+  .pstep{ border-left:1px solid var(--rule); padding-left:24px; padding-right:26px; }
+  .pstep .num{ font-family:"Fraunces", serif; font-size:0.95rem; color:var(--secheresse); margin-bottom:14px; display:block; }
+  .pstep h3{ font-size:1.05rem; font-weight:520; margin-bottom:10px; }
+  .pstep p{ font-size:0.9rem; color:var(--ink-dim); margin:0; }
+
+  /* ---------- Footer / cartouche ---------- */
+  footer{ border-top:1px solid var(--rule); padding:56px 0 40px; }
+  .cartouche{ border:1px solid var(--rule); display:grid; grid-template-columns:repeat(4,1fr); }
+  @media (max-width:700px){ .cartouche{grid-template-columns:1fr 1fr;} }
+  .cartouche div{ padding:20px 22px; border-right:1px solid var(--rule); }
+  .cartouche div:last-child{ border-right:none; }
+  .cartouche .k{ font-size:0.72rem; color:var(--ink-dim); margin-bottom:6px; }
+  .cartouche .v{ font-size:0.94rem; color:var(--ink); }
+  .foot-bottom{
+    margin-top:26px; display:flex; justify-content:space-between; align-items:center;
+    font-size:0.82rem; color:var(--ink-dim); flex-wrap:wrap; gap:10px;
+  }
+  .foot-bottom a{ text-decoration:underline; text-underline-offset:3px; color:var(--ink); }
+</style>
+</head>
+<body>
+
+  <div class="topbar wrap">
+    <div class="mark"><span class="dot"></span> Risques &amp; territoire</div>
+    <nav>
+      <a href="#tabset">Cartes</a>
+      <a href="#methode">Méthode</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+
+  <div class="hero">
+    <svg class="hero-contours" viewBox="0 0 1200 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M-20,60 C 220,20 380,100 600,60 C 820,20 980,90 1220,50"/>
+      <path d="M-20,110 C 200,80 400,150 620,110 C 840,70 1000,140 1220,100"/>
+      <path d="M-20,160 C 210,130 390,190 610,150 C 830,110 990,180 1220,145"/>
+      <path d="M-20,210 C 230,185 380,240 600,205 C 820,170 1000,230 1220,195"/>
+    </svg>
+    <div class="hero-inner wrap">
+      <span class="coord">Portfolio cartographique — cartes CARTO embarquées</span>
+      <h1>Trois risques, trois cartes, une seule lecture du territoire</h1>
+      <p class="lede">Inondation, sécheresse, feux de forêt&nbsp;: chaque onglet embarque une carte réalisée avec CARTO, prête à être explorée, zoomée et interrogée couche par couche.</p>
+    </div>
+  </div>
+
+  <section class="tabset wrap" id="tabset">
+    <div class="tablist" role="tablist" aria-label="Choisir un risque naturel">
+      <button class="tab" role="tab" id="tab-inondation" aria-controls="panel-inondation" aria-selected="true" data-accent="var(--inondation)">
+        <span class="swatch" style="background:var(--inondation)"></span> Inondation
+      </button>
+      <button class="tab" role="tab" id="tab-secheresse" aria-controls="panel-secheresse" aria-selected="false" tabindex="-1" data-accent="var(--secheresse)">
+        <span class="swatch" style="background:var(--secheresse)"></span> Sécheresse
+      </button>
+      <button class="tab" role="tab" id="tab-incendie" aria-controls="panel-incendie" aria-selected="false" tabindex="-1" data-accent="var(--incendie)">
+        <span class="swatch" style="background:var(--incendie)"></span> Feux de forêt
+      </button>
+    </div>
+
+    <!-- ===== Inondation ===== -->
+    <div class="panel is-active" id="panel-inondation" role="tabpanel" aria-labelledby="tab-inondation" tabindex="0">
+      <div class="panel-head">
+        <span class="tag">01 — Eau</span>
+        <div>
+          <h2>Zones inondables</h2>
+          <p>Débordement de cours d'eau et remontée de nappe, croisés avec l'occupation du sol et les enjeux bâtis.</p>
+        </div>
+      </div>
+      <div class="map-panel">
+        <div class="map-frame">
+          <iframe
+            src="https://VOTRE-COMPTE.carto.com/builder/VOTRE-CARTE-INONDATION/embed"
+            title="Carte CARTO — Zones inondables"
+            loading="lazy"
+            allow="fullscreen"
+            allowfullscreen></iframe>
+        </div>
+        <div class="map-side">
+          <div class="k">Source</div><div class="v">Géorisques, BD TOPO</div>
+          <div class="k">Aléa</div><div class="v">Débordement · remontée de nappe</div>
+          <div class="note">Remplacer <code>src</code> par l'URL d'embed obtenue dans CARTO Builder via <em>Share → Embed map</em>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Sécheresse ===== -->
+    <div class="panel" id="panel-secheresse" role="tabpanel" aria-labelledby="tab-secheresse" tabindex="0" hidden>
+      <div class="panel-head">
+        <span class="tag">02 — Sol</span>
+        <div>
+          <h2>Exposition à la sécheresse</h2>
+          <p>Aléa de retrait-gonflement des argiles (RGA) et sécheresse des sols, en lien avec la vulnérabilité du bâti.</p>
+        </div>
+      </div>
+      <div class="map-panel">
+        <div class="map-frame">
+          <iframe
+            src="https://VOTRE-COMPTE.carto.com/builder/VOTRE-CARTE-SECHERESSE/embed"
+            title="Carte CARTO — Exposition à la sécheresse"
+            loading="lazy"
+            allow="fullscreen"
+            allowfullscreen></iframe>
+        </div>
+        <div class="map-side">
+          <div class="k">Source</div><div class="v">BRGM, Géorisques (RGA)</div>
+          <div class="k">Aléa</div><div class="v">Retrait-gonflement des argiles</div>
+          <div class="note">Remplacer <code>src</code> par l'URL d'embed obtenue dans CARTO Builder via <em>Share → Embed map</em>.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Feux de forêt ===== -->
+    <div class="panel" id="panel-incendie" role="tabpanel" aria-labelledby="tab-incendie" tabindex="0" hidden>
+      <div class="panel-head">
+        <span class="tag">03 — Végétation</span>
+        <div>
+          <h2>Massifs exposés au feu</h2>
+          <p>Végétation, relief et historique des départs de feu, croisés pour hiérarchiser les massifs à surveiller.</p>
+        </div>
+      </div>
+      <div class="map-panel">
+        <div class="map-frame">
+          <iframe
+            src="https://VOTRE-COMPTE.carto.com/builder/VOTRE-CARTE-INCENDIE/embed"
+            title="Carte CARTO — Massifs exposés au feu"
+            loading="lazy"
+            allow="fullscreen"
+            allowfullscreen></iframe>
+        </div>
+        <div class="map-side">
+          <div class="k">Source</div><div class="v">BD Forêt, base Prométhée</div>
+          <div class="k">Aléa</div><div class="v">Départs de feu historiques</div>
+          <div class="note">Remplacer <code>src</code> par l'URL d'embed obtenue dans CARTO Builder via <em>Share → Embed map</em>.</div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <footer id="contact">
+    <div class="wrap">
+      <div class="cartouche">
+        <div><div class="k">Projet</div><div class="v">Cartographie des risques naturels</div></div>
+        <div><div class="k">Réalisation</div><div class="v">QGIS · PostGIS · CARTO</div></div>
+        <div><div class="k">Cartes</div><div class="v">3 — inondation, sécheresse, incendie</div></div>
+        <div><div class="k">Statut</div><div class="v">Portfolio en cours</div></div>
+      </div>
+      <div class="foot-bottom">
+        <span>Page personnelle — retravaillée librement.</span>
+        <a href="mailto:contact@exemple.fr">contact@exemple.fr</a>
+      </div>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+
+  function activate(tab){
+    tabs.forEach(function(t){
+      var selected = t === tab;
+      t.setAttribute('aria-selected', selected);
+      t.tabIndex = selected ? 0 : -1;
+    });
+    panels.forEach(function(p){
+      var match = p.id === tab.getAttribute('aria-controls');
+      p.classList.toggle('is-active', match);
+      p.hidden = !match;
+    });
+    document.documentElement.style.setProperty('--accent', tab.getAttribute('data-accent'));
+  }
+
+  tabs.forEach(function(tab, i){
+    tab.addEventListener('click', function(){ activate(tab); });
+    tab.addEventListener('keydown', function(e){
+      var next = null;
+      if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+      if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+      if (next){ e.preventDefault(); next.focus(); activate(next); }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
