@@ -1,182 +1,180 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="h-full">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIG Longévité — Maquette Célestine</title>
 
-<title>Cartographie des Risques</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f6f9ed',
+                            100: '#e9f0d3',
+                            200: '#d5e3a8',
+                            300: '#bbd276',
+                            400: '#a3be4a',
+                            500: '#8ca234', // Vert olive principal
+                            600: '#6d8125',
+                            700: '#526320',
+                            800: '#43501f',
+                            900: '#39441e',
+                        },
+                        accent: '#cbe737'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-<style>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-:root{
-    --primary:#0f62fe;
-    --primary-hover:#0353e9;
-    --background:#f5f7fa;
-    --text:#1f2937;
-    --border:#e5e7eb;
-    --header-height:70px;
-}
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+    <style>
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
 
-body{
-    font-family:"Segoe UI", Arial, sans-serif;
-    background:var(--background);
-    color:var(--text);
-    height:100vh;
-    overflow:hidden;
-}
+        .glass-header {
+            background: linear-gradient(135deg, rgba(140, 162, 52, 0.98) 0%, rgba(109, 129, 37, 1) 100%);
+        }
 
-/* HEADER */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
 
-header{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-    height:var(--header-height);
+        .category-btn {
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
 
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+        .category-btn.active {
+            background-color: #ffffff;
+            color: #526320;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
 
-    padding:0 2rem;
-
-    background:white;
-    border-bottom:1px solid var(--border);
-
-    box-shadow:0 2px 12px rgba(0,0,0,.06);
-
-    z-index:1000;
-}
-
-.brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}
-
-.logo{
-    width:40px;
-    height:40px;
-    border-radius:10px;
-
-    background:linear-gradient(
-        135deg,
-        #0f62fe,
-        #42a5f5
-    );
-}
-
-.title{
-    font-size:1.2rem;
-    font-weight:600;
-}
-
-/* NAVIGATION */
-
-nav ul{
-    display:flex;
-    list-style:none;
-    gap:12px;
-}
-
-nav a{
-    display:block;
-    text-decoration:none;
-
-    color:#374151;
-    font-weight:600;
-
-    padding:10px 18px;
-    border-radius:999px;
-
-    transition:all .2s ease;
-}
-
-nav a:hover{
-    background:#eef4ff;
-    color:var(--primary);
-}
-
-nav a.active{
-    background:var(--primary);
-    color:white;
-}
-
-/* CONTENU */
-
-main{
-    height:100vh;
-    padding-top:var(--header-height);
-}
-
-.map-wrapper{
-    height:100%;
-    padding:16px;
-}
-
-.map-container{
-    height:100%;
-    overflow:hidden;
-
-    border-radius:20px;
-    background:white;
-
-    border:1px solid var(--border);
-
-    box-shadow:
-        0 10px 30px rgba(0,0,0,.07);
-}
-
-.map-container iframe{
-    width:100%;
-    height:100%;
-    border:none;
-}
-
-/* RESPONSIVE */
-
-@media (max-width:768px){
-
-    header{
-        flex-direction:column;
-        height:auto;
-        padding:15px;
-        gap:12px;
-    }
-
-    main{
-        padding-top:120px;
-    }
-
-    nav ul{
-        flex-wrap:wrap;
-        justify-content:center;
-    }
-
-}
-
-</style>
+        .category-btn:not(.active):hover {
+            background-color: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+        }
+    </style>
 </head>
+<body class="h-full w-full flex flex-col overflow-hidden bg-slate-900 text-slate-800 antialiased">
 
-<body>
+    <!-- HEADER SUPÉRIEUR BANDEAU -->
+    <header class="glass-header text-white relative z-30 shadow-md border-b border-white/10 flex-shrink-0">
+        <!-- Bandeau principal Titre / Logo -->
+        <div class="px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center justify-between">
+                
+                <!-- Logo & Titre -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+                        <i class="fa-solid fa-layer-group text-accent text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="font-bold text-lg md:text-xl tracking-tight text-white leading-none">SIG Longévité</h1>
+                            <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30 hidden sm:inline-block">v2.4</span>
+                        </div>
+                        <p class="text-xs text-brand-100 font-light italic mt-0.5">Maquette <span class="font-medium text-white">Célestine</span></p>
+                    </div>
+                </div>
 
-<header>
-
-    <div class="brand">
-        <div class="logo"></div>
-        <div class="title">
-            Cartographie des Risques Naturels
+                <!-- Info droite -->
+                <div class="flex items-center space-x-2 text-xs text-brand-100">
+                    <span class="bg-black/10 px-3 py-1.5 rounded-xl border border-white/10 hidden sm:inline-block">
+                        <i class="fa-solid fa-earth-europe text-accent mr-1.5"></i>Région Pays de la Loire
+                    </span>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <nav>
-        <ul>
-            <li>#Inondation</a></li>
-            <li>#Sécheresse</a></li>
-            <li><a
+        <!-- BANDEAU DES CATÉGORIES EN LIGNE -->
+        <nav class="bg-black/20 backdrop-blur-md border-t border-white/10 px-4 py-2 overflow-x-auto no-scrollbar">
+            <div class="flex items-center space-x-2 sm:space-x-3 text-xs md:text-sm text-white/90 min-w-max" id="categories-container">
+                <button onclick="selectCategory(this)" class="category-btn active px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-chart-pie mr-1.5 text-accent"></i>Dynamique terr.
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-bus mr-1.5"></i>Mobilité
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-universal-access mr-1.5"></i>Accessibilité
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-house-user mr-1.5"></i>Habitat
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-shield-halved mr-1.5"></i>Prévention
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-handshake-angle mr-1.5"></i>Inclusion / Solidarité
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-notes-medical mr-1.5"></i>Santé
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-tree mr-1.5"></i>Îlots de fraîcheur
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-circle-info mr-1.5"></i>Information
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-user-doctor mr-1.5"></i>Médico-social
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-city mr-1.5"></i>Urbanisme
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-hands-holding-child mr-1.5"></i>Soutien aux aidants
+                </button>
+                <button onclick="selectCategory(this)" class="category-btn px-4 py-2 rounded-xl text-white/90">
+                    <i class="fa-solid fa-compass mr-1.5"></i>Explorer
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ZONE PRINCIPALE DE LA CARTE (EMBED CARTO) -->
+    <main class="relative flex-1 w-full h-full overflow-hidden bg-slate-100">
+        <iframe 
+            id="carto-map"
+            src="https://pinea.app.carto.com/map/84d14aa0-3458-454e-be20-641c9c893a98?lat=47.057279&lng=1.469331" 
+            class="w-full h-full border-0" 
+            title="Carte SIG Longévité CARTO"
+            allow="geolocation"
+            loading="lazy">
+        </iframe>
+    </main>
+
+    <script>
+        function selectCategory(buttonElement) {
+            // Retirer la classe active de tous les boutons
+            const buttons = document.querySelectorAll('.category-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Activer le bouton cliqué
+            buttonElement.classList.add('active');
+        }
+    </script>
+</body>
+</html>
