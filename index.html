@@ -13,16 +13,16 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#f0f7ff',
-                            100: '#e0effe',
-                            200: '#bae0fd',
-                            300: '#7cc7fb',
-                            400: '#36a8f7',
-                            500: '#0c8ce9', // Bleu principal
-                            600: '#006ebc',
-                            700: '#005898',
-                            800: '#054a7e',
-                            900: '#0a3e68',
+                            50: '#f0f4f9',
+                            100: '#dce5f1',
+                            200: '#bdcfe3',
+                            300: '#94b1d1',
+                            400: '#648dbb',
+                            500: '#436fa3', // Bleu acier / institutionnel
+                            600: '#325586',
+                            700: '#29456e',
+                            800: '#253b5b',
+                            900: '#22334d',
                         },
                         accent: '#0c8ce9'
                     },
@@ -46,11 +46,11 @@
         * {
             transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
-
+    
         .glass-header {
-            background: linear-gradient(135deg, rgba(140, 162, 52, 0.98) 0%, rgba(109, 129, 37, 1) 100%);
+            background: linear-gradient(135deg, rgba(12, 140, 233, 0.98) 0%, rgba(0, 110, 188, 1) 100%);
         }
-
+    
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -58,19 +58,19 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-
+    
         .category-btn {
             white-space: nowrap;
             transition: all 0.2s ease;
         }
-
+    
         .category-btn.active {
             background-color: #ffffff;
-            color: #526320;
+            color: #005898;
             font-weight: 600;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
-
+    
         .category-btn:not(.active):hover {
             background-color: rgba(255, 255, 255, 0.18);
             color: #ffffff;
