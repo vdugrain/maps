@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repères de crue</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
+<style>
+  :root { --bg:#1b1f27; --fg:#e8eaed; --muted:#9aa3b2; --accent:#7b3fb0; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  #map { position:absolute; inset:0; }
+
+  .panel { position:absolute; background:rgba(27,31,39,.92); border-radius:8px; padding:12px 14px; box-shadow:0 2px 12px rgba(0,0,0,.4); }
+  #title { top:12px; left:12px; max-width:320px; }
+  #title h1 { font-size:16px; margin:0 0 6px; }
+  #title p  { font-size:12px; margin:0; color:var(--muted); line-height:1.4; }
+
+  #legend { top:12px; right:12px; font-size:12px; }
+  #legend h2 { font-size:12px; margin:0 0 6px; color:var(--muted); font-weight:600; }
+  #legend div { display:flex; align-items:center; gap:8px; margin:3px 0; }
+  #legend i { width:12px; height:12px; border-radius:50%; display:inline-block; }
+
+  #controls { left:50%; bottom:24px; transform:translateX(-50%); width:min(760px, calc(100% - 24px)); }
+  #row1 { display:flex; align-items:center; gap:12px; }
+  #year { font-size:28px; font-weight:700; min-width:76px; text-align:center; font-variant-numeric: tabular-nums; }
+  #slider { flex:1; accent-color: var(--accent); }
+  button, select { background:#2b313c; color:var(--fg); border:1px solid #3a4150; border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer; }
+  button:hover, select:hover { background:#353c49; }
+  #row2 { display:flex; align-items:center; gap:14px; margin-top:8px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+  #row2 label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  #count { margin-left:auto; }
+
+  .maplibregl-popup-content { background:var(--bg); color:var(--fg); font-size:12px; border-radius:6px; }
+  .maplibregl-popup-tip { border-top-color:var(--bg) !important; border-bottom-color:var(--bg) !important; }
+  .maplibregl-popup-content b { display:block; margin-bottom:4px; font-size:13px; }
+  .maplibregl-popup-close-button { color:var(--fg); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="title" class="panel">
+  <h1>Évolution temporelle des repères de crue</h1>
+  <p>Faites défiler les années avec le curseur ou lancez la lecture. Cliquez sur un point pour voir ses informations.</p>
+</div>
+
+<div id="legend" class="panel"></div>
+
+<div id="controls" class="panel">
+  <div id="row1">
+    <button id="play" title="Lecture / pause">▶</button>
+    <input id="slider" type="range">
+    <div id="year"></div>
+  </div>
+  <div id="row2">
+    <label><input type="checkbox" id="cumul" checked> Cumulatif (garder les années précédentes)</label>
+    <label>Vitesse
+      <select id="speed">
+        <option value="200">Lente</option>
+        <option value="80" selected>Normale</option>
+        <option value="30">Rapide</option>
+      </select>
+    </label>
+    <span id="count"></span>
+  </div>
+</div>
+
+<script>
+/* =====================  CONFIGURATION  ===================== */
+const CONFIG = {
+  // Source des données : URL d'un .geojson ou d'un .pmtiles (null = petit jeu de démonstration intégré)
+  DATA_URL: null,                // ex. "data/reperes.geojson" ou "data/reperes.pmtiles"
+  PMTILES_LAYER: "reperes",      // nom de la couche dans le PMTiles (option -l de tippecanoe)
+
+  YEAR_FIELD: "annee",           // champ entier de l'année de crue
+  YEAR_MIN: 1800,
+  YEAR_MAX: 2026,
+  START_YEAR: 2026,
+
+  // Champs affichés dans la fenêtre au clic : [champ, libellé]
+  POPUP_FIELDS: [["nom", "Nom"], ["cours_eau", "Cours d'eau"], ["annee", "Année"], ["hauteur", "Hauteur (m)"]],
+
+  // Couleurs par période : [année de début, couleur]
+  PALETTE: [
+    [1800, "#4b1d91"],
+    [1900, "#9b3fa8"],
+    [1950, "#e0527a"],
+    [1990, "#f9a35c"],
+    [2010, "#fcf0a0"]
+  ],
+
+  BASEMAP: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+  CENTER: [2.5, 46.6],
+  ZOOM: 5
+};
+
+/* Jeu de démonstration (points fictifs, à remplacer par vos données) */
+const DEMO = { type: "FeatureCollection", features: [
+  [-1.55,47.21,1910,"Quai de la Fosse","La Loire",3.1],
+  [-1.53,47.22,1982,"Pont de Pirmil","La Loire",2.4],
+  [ 2.34,48.85,1910,"Quai de la Tournelle","La Seine",8.6],
+  [ 2.30,48.86,1955,"Pont de l'Alma","La Seine",6.9],
+  [ 4.83,45.76,1840,"Quai Saint-Vincent","Le Rhône",4.2],
+  [ 4.84,45.75,2003,"Quai Claude Bernard","Le Rhône",3.5],
+  [-0.57,44.84,1875,"Quai des Chartrons","La Garonne",5.0],
+  [ 1.44,43.60,1875,"Pont Neuf","La Garonne",8.0],
+  [ 1.45,43.61,2000,"Quai de Tounis","La Garonne",3.2],
+  [ 3.88,43.61,1976,"Pont Juvénal","Le Lez",2.1],
+  [ 7.75,48.58,1990,"Quai des Bateliers","L'Ill",2.0],
+  [ 0.69,47.39,1856,"Quai de la Loire","La Loire",5.4]
+].map(([x,y,a,n,c,h]) => ({ type:"Feature", geometry:{type:"Point",coordinates:[x,y]},
+  properties:{ annee:a, nom:n, cours_eau:c, hauteur:h } })) };
+
+/* =====================  CODE  ===================== */
+const isPMTiles = CONFIG.DATA_URL && CONFIG.DATA_URL.endsWith(".pmtiles");
+if (isPMTiles) {
+  const protocol = new pmtiles.Protocol();
+  maplibregl.addProtocol("pmtiles", protocol.tile);
+}
+
+const map = new maplibregl.Map({
+  container: "map",
+  style: CONFIG.BASEMAP,
+  center: CONFIG.CENTER,
+  zoom: CONFIG.ZOOM,
+  attributionControl: { compact: true }
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+
+const slider = document.getElementById("slider");
+const yearLabel = document.getElementById("year");
+const playBtn = document.getElementById("play");
+const cumulBox = document.getElementById("cumul");
+const speedSel = document.getElementById("speed");
+const countEl = document.getElementById("count");
+
+slider.min = CONFIG.YEAR_MIN;
+slider.max = CONFIG.YEAR_MAX;
+slider.step = 1;
+slider.value = CONFIG.START_YEAR;
+
+let counts = null;       // décomptes par année (uniquement pour une source GeoJSON)
+let timer = null;
+
+function colorExpression() {
+  const y = ["to-number", ["get", CONFIG.YEAR_FIELD]];
+  const expr = ["step", y, CONFIG.PALETTE[0][1]];
+  CONFIG.PALETTE.slice(1).forEach(([from, color]) => expr.push(from, color));
+  return expr;
+}
+
+function buildLegend() {
+  const el = document.getElementById("legend");
+  const items = CONFIG.PALETTE.map(([from, color], i) => {
+    const to = CONFIG.PALETTE[i + 1] ? CONFIG.PALETTE[i + 1][0] - 1 : CONFIG.YEAR_MAX;
+    const label = i === 0 ? `avant ${to + 1}` : `${from} – ${to}`;
+    return `<div><i style="background:${color}"></i>${label}</div>`;
+  }).join("");
+  el.innerHTML = `<h2>Année de la crue</h2>${items}`;
+}
+
+function computeCounts(fc) {
+  const c = {};
+  fc.features.forEach(f => {
+    const y = Number(f.properties[CONFIG.YEAR_FIELD]);
+    if (!Number.isNaN(y)) c[y] = (c[y] || 0) + 1;
+  });
+  return c;
+}
+
+function applyYear(year) {
+  year = Number(year);
+  yearLabel.textContent = year;
+  slider.value = year;
+  const y = ["to-number", ["get", CONFIG.YEAR_FIELD]];
+  const filter = cumulBox.checked ? ["<=", y, year] : ["==", y, year];
+  if (map.getLayer("reperes")) map.setFilter("reperes", filter);
+
+  if (counts) {
+    let n = 0;
+    for (const [k, v] of Object.entries(counts)) {
+      if (cumulBox.checked ? Number(k) <= year : Number(k) === year) n += v;
+    }
+    countEl.textContent = `${n.toLocaleString("fr-FR")} repère${n > 1 ? "s" : ""}`;
+  }
+}
+
+function addSourceAndLayer() {
+  const layer = {
+    id: "reperes",
+    type: "circle",
+    paint: {
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 2.5, 10, 6, 14, 9],
+      "circle-color": colorExpression(),
+      "circle-opacity": 0.85,
+      "circle-stroke-width": 0.5,
+      "circle-stroke-color": "#000"
+    }
+  };
+
+  if (isPMTiles) {
+    map.addSource("reperes", { type: "vector", url: "pmtiles://" + CONFIG.DATA_URL });
+    layer.source = "reperes";
+    layer["source-layer"] = CONFIG.PMTILES_LAYER;
+    countEl.textContent = "";
+  } else if (CONFIG.DATA_URL) {
+    map.addSource("reperes", { type: "geojson", data: CONFIG.DATA_URL });
+    layer.source = "reperes";
+    fetch(CONFIG.DATA_URL).then(r => r.json()).then(fc => { counts = computeCounts(fc); applyYear(slider.value); });
+  } else {
+    map.addSource("reperes", { type: "geojson", data: DEMO });
+    layer.source = "reperes";
+    counts = computeCounts(DEMO);
+  }
+  map.addLayer(layer);
+  applyYear(CONFIG.START_YEAR);
+}
+
+map.on("load", () => {
+  buildLegend();
+  addSourceAndLayer();
+
+  map.on("click", "reperes", e => {
+    const p = e.features[0].properties;
+    const rows = CONFIG.POPUP_FIELDS
+      .filter(([k]) => p[k] !== undefined && p[k] !== null && p[k] !== "")
+      .map(([k, label], i) => i === 0 ? `<b>${p[k]}</b>` : `${label} : ${p[k]}<br>`)
+      .join("");
+    new maplibregl.Popup({ closeButton: true, maxWidth: "280px" })
+      .setLngLat(e.lngLat).setHTML(rows || "Aucune information").addTo(map);
+  });
+  map.on("mouseenter", "reperes", () => map.getCanvas().style.cursor = "pointer");
+  map.on("mouseleave", "reperes", () => map.getCanvas().style.cursor = "");
+});
+
+/* Interactions */
+slider.addEventListener("input", () => applyYear(slider.value));
+cumulBox.addEventListener("change", () => applyYear(slider.value));
+
+function stop() { clearInterval(timer); timer = null; playBtn.textContent = "▶"; }
+function play() {
+  if (Number(slider.value) >= CONFIG.YEAR_MAX) applyYear(CONFIG.YEAR_MIN);
+  playBtn.textContent = "❚❚";
+  timer = setInterval(() => {
+    const next = Number(slider.value) + 1;
+    if (next > CONFIG.YEAR_MAX) { stop(); return; }
+    applyYear(next);
+  }, Number(speedSel.value));
+}
+playBtn.addEventListener("click", () => timer ? stop() : play());
+speedSel.addEventListener("change", () => { if (timer) { stop(); play(); } });
+</script>
+</body>
+</html>
