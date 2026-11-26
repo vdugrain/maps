@@ -72,7 +72,7 @@
 /* =====================  CONFIGURATION  ===================== */
 const CONFIG = {
   // Source des données : URL d'un .geojson ou d'un .pmtiles (null = petit jeu de démonstration intégré)
-  DATA_URL: null,                // ex. "data/reperes.geojson" ou "data/reperes.pmtiles"
+  DATA_URL: "r_repere_crue.geojson",                // ex. "data/reperes.geojson" ou "data/reperes.pmtiles"
   PMTILES_LAYER: "reperes",      // nom de la couche dans le PMTiles (option -l de tippecanoe)
 
   YEAR_FIELD: "annee",           // champ entier de l'année de crue
@@ -81,7 +81,7 @@ const CONFIG = {
   START_YEAR: 2026,
 
   // Champs affichés dans la fenêtre au clic : [champ, libellé]
-  POPUP_FIELDS: [["nom", "Nom"], ["cours_eau", "Cours d'eau"], ["annee", "Année"], ["hauteur", "Hauteur (m)"]],
+  POPUP_FIELDS: [["nom", "Nom"], ["cours_eau", "Cours d'eau"], ["annee", "Année"]],
 
   // Couleurs par période : [année de début, couleur]
   PALETTE: [
